@@ -201,17 +201,46 @@
                     eventsContainer.style.display = 'none';
                     errorContainer.innerHTML = '';
 
+                    // Option 1: Using a CORS proxy (for development/demonstration only)
+                    // In production, you should implement a proper backend solution
                     const apiUrl = 'https://armenopole.com/api/eventsapi/GetAllEvents?ExternalUserId=Test&Country=Belgium';
+                    const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/';
                     
-                    const response = await fetch(apiUrl);
+                    // Note: You may need to request temporary access to the demo server at:
+                    // https://cors-anywhere.herokuapp.com/corsdemo
                     
-                    if (!response.ok) {
-                        throw new Error(`API request failed with status ${response.status}`);
+                    // Try with CORS proxy
+                    try {
+                        const response = await fetch(corsProxyUrl + apiUrl, {
+                            headers: {
+                                'Origin': window.location.origin
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`API request failed with status ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        allEvents = data;
+                        displayEvents(allEvents);
+                    } catch (proxyError) {
+                        console.error('Error using CORS proxy:', proxyError);
+                        
+                        // If proxy fails, show fallback sample data
+                        console.log("Using sample data instead");
+                        allEvents = getSampleEvents();
+                        displayEvents(allEvents);
+                        
+                        errorContainer.innerHTML = `
+                            <div class="error">
+                                Unable to connect to the live API due to CORS restrictions. 
+                                Showing sample data instead. In a production environment, 
+                                you would need to implement a backend proxy or ensure the API 
+                                supports CORS.
+                            </div>
+                        `;
                     }
-                    
-                    const data = await response.json();
-                    allEvents = data;
-                    displayEvents(allEvents);
                 } catch (error) {
                     console.error('Error fetching events:', error);
                     errorContainer.innerHTML = `
@@ -220,6 +249,10 @@
                             <p>${error.message}</p>
                         </div>
                     `;
+                    
+                    // Fallback to sample data
+                    allEvents = getSampleEvents();
+                    displayEvents(allEvents);
                 } finally {
                     loadingElement.style.display = 'none';
                     eventsContainer.style.display = 'grid';
@@ -296,6 +329,66 @@
             // Add event listeners
             searchInput.addEventListener('input', filterEvents);
 
+            // Function to generate sample events data for fallback
+            function getSampleEvents() {
+                return [
+                    {
+                        id: 1,
+                        name: "Brussels Jazz Festival",
+                        description: "A celebration of jazz music featuring local and international artists across multiple venues in Brussels.",
+                        startDateTime: new Date(2025, 2, 15, 18, 0).toISOString(),
+                        endDateTime: new Date(2025, 2, 20, 23, 0).toISOString(),
+                        locationName: "Various Venues, Brussels",
+                        websiteUrl: "https://example.com/brussels-jazz"
+                    },
+                    {
+                        id: 2,
+                        name: "Antwerp Art Fair",
+                        description: "Annual exhibition showcasing contemporary art from Belgian and international artists.",
+                        startDateTime: new Date(2025, 3, 5, 10, 0).toISOString(),
+                        endDateTime: new Date(2025, 3, 7, 18, 0).toISOString(),
+                        locationName: "Antwerp Expo, Antwerp",
+                        websiteUrl: "https://example.com/antwerp-art"
+                    },
+                    {
+                        id: 3,
+                        name: "Ghent Food Festival",
+                        description: "Culinary event featuring the best of Belgian cuisine, with tastings, demonstrations, and workshops.",
+                        startDateTime: new Date(2025, 3, 12, 11, 0).toISOString(),
+                        endDateTime: new Date(2025, 3, 14, 22, 0).toISOString(),
+                        locationName: "Korenmarkt, Ghent",
+                        websiteUrl: "https://example.com/ghent-food"
+                    },
+                    {
+                        id: 4,
+                        name: "Bruges Beer Weekend",
+                        description: "Weekend celebration of Belgian beer with over 100 breweries participating.",
+                        startDateTime: new Date(2025, 4, 8, 12, 0).toISOString(),
+                        endDateTime: new Date(2025, 4, 10, 20, 0).toISOString(),
+                        locationName: "Markt, Bruges",
+                        websiteUrl: "https://example.com/bruges-beer"
+                    },
+                    {
+                        id: 5,
+                        name: "Brussels Comic Con",
+                        description: "Convention for comic book fans featuring panels, cosplay contests, and artist exhibitions.",
+                        startDateTime: new Date(2025, 5, 22, 9, 0).toISOString(),
+                        endDateTime: new Date(2025, 5, 23, 18, 0).toISOString(),
+                        locationName: "Brussels Expo, Brussels",
+                        websiteUrl: "https://example.com/brussels-comic"
+                    },
+                    {
+                        id: 6,
+                        name: "Liège International Film Festival",
+                        description: "Annual film festival showcasing independent cinema from around the world.",
+                        startDateTime: new Date(2025, 6, 10, 19, 30).toISOString(),
+                        endDateTime: new Date(2025, 6, 17, 23, 0).toISOString(),
+                        locationName: "Forum, Liège",
+                        websiteUrl: "https://example.com/liege-film"
+                    }
+                ];
+            }
+            
             // Initial fetch
             fetchEvents();
         });
