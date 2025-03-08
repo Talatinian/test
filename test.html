@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belgium Events</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --light: #ecf0f1;
+            --dark: #34495e;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .event-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .event-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .event-header {
+            padding: 15px;
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .event-body {
+            padding: 20px;
+        }
+
+        .event-date {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .event-location {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            color: #7f8c8d;
+        }
+
+        .event-location svg {
+            margin-right: 5px;
+        }
+
+        .event-footer {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #eee;
+            text-align: right;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: var(--secondary);
+        }
+
+        .error {
+            background-color: #ffecec;
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .event-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Belgium Events</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="filters">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search events...">
+            </div>
+        </div>
+
+        <div id="error-container"></div>
+        <div id="loading" class="loading">Loading events...</div>
+        <div id="events-container" class="event-grid"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventsContainer = document.getElementById('events-container');
+            const loadingElement = document.getElementById('loading');
+            const errorContainer = document.getElementById('error-container');
+            const searchInput = document.getElementById('searchInput');
+            
+            let allEvents = [];
+
+            // Fetch events from the API
+            async function fetchEvents() {
+                try {
+                    loadingElement.style.display = 'block';
+                    eventsContainer.style.display = 'none';
+                    errorContainer.innerHTML = '';
+
+                    const apiUrl = 'https://armenopole.com/api/eventsapi/GetAllEvents?ExternalUserId=Test&Country=Belgium';
+                    
+                    const response = await fetch(apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    allEvents = data;
+                    displayEvents(allEvents);
+                } catch (error) {
+                    console.error('Error fetching events:', error);
+                    errorContainer.innerHTML = `
+                        <div class="error">
+                            Failed to load events. Please try again later.
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                } finally {
+                    loadingElement.style.display = 'none';
+                    eventsContainer.style.display = 'grid';
+                }
+            }
+
+            // Display events in the container
+            function displayEvents(events) {
+                if (events.length === 0) {
+                    eventsContainer.innerHTML = '<p class="no-events">No events found.</p>';
+                    return;
+                }
+
+                eventsContainer.innerHTML = '';
+                
+                events.forEach(event => {
+                    // Format date
+                    const eventDate = new Date(event.startDateTime);
+                    const formattedDate = eventDate.toLocaleDateString('en-GB', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    // Create event card
+                    const eventCard = document.createElement('div');
+                    eventCard.className = 'event-card';
+                    eventCard.innerHTML = `
+                        <div class="event-header">
+                            <h3>${event.name || 'Unnamed Event'}</h3>
+                        </div>
+                        <div class="event-body">
+                            <div class="event-date">${formattedDate}</div>
+                            <p>${event.description || 'No description available.'}</p>
+                            <div class="event-location">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                                </svg>
+                                ${event.locationName || 'Location not specified'}
+                            </div>
+                        </div>
+                        <div class="event-footer">
+                            <a href="${event.websiteUrl || '#'}" target="_blank" class="btn btn-primary">
+                                ${event.websiteUrl ? 'More Info' : 'No Link Available'}
+                            </a>
+                        </div>
+                    `;
+                    
+                    eventsContainer.appendChild(eventCard);
+                });
+            }
+
+            // Filter events based on search input
+            function filterEvents() {
+                const searchTerm = searchInput.value.toLowerCase();
+                
+                if (!searchTerm) {
+                    displayEvents(allEvents);
+                    return;
+                }
+                
+                const filteredEvents = allEvents.filter(event => {
+                    const nameMatch = event.name && event.name.toLowerCase().includes(searchTerm);
+                    const descMatch = event.description && event.description.toLowerCase().includes(searchTerm);
+                    const locationMatch = event.locationName && event.locationName.toLowerCase().includes(searchTerm);
+                    
+                    return nameMatch || descMatch || locationMatch;
+                });
+                
+                displayEvents(filteredEvents);
+            }
+
+            // Add event listeners
+            searchInput.addEventListener('input', filterEvents);
+
+            // Initial fetch
+            fetchEvents();
+        });
+    </script>
+</body>
+</html>
